@@ -193,6 +193,14 @@ function tickRoomTasks(roomState, now = Date.now()) {
             }
           }
 
+          // Feeding Mamacan satisfies hunger
+          if (taskId === "PET-01" || taskId === "PET-02") {
+            if (roomState.tiger) {
+              roomState.tiger.hunger = 100;
+              roomState.tiger.mood = "happy";
+            }
+          }
+
           // Update sick / health status
           const isExhausted = roomState.stats.energy <= 0 || roomState.stats.hunger <= 0;
           const isRecovered = roomState.stats.energy >= 35 && roomState.stats.hunger >= 35;

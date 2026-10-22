@@ -5,10 +5,11 @@ class InputManager {
     this.network = network;
     this.getGameState = getGameState;
     this.getLocalRole = getLocalRole;
-
     this.keys = new Set();
+    this.touchDirection = { dx: 0, dy: 0 };
     this.moveInterval = null;
     this.setupListeners();
+    this.bindTouchControls();
   }
 
   setupListeners() {
@@ -39,8 +40,8 @@ class InputManager {
   }
 
   dispatchMoveIntent() {
-    let dx = 0;
-    let dy = 0;
+    let dx = this.touchDirection.dx;
+    let dy = this.touchDirection.dy;
 
     if (this.keys.has("KeyW") || this.keys.has("ArrowUp")) dy -= 1;
     if (this.keys.has("KeyS") || this.keys.has("ArrowDown")) dy += 1;
@@ -48,7 +49,77 @@ class InputManager {
     if (this.keys.has("KeyD") || this.keys.has("ArrowRight")) dx += 1;
 
     if (dx !== 0 || dy !== 0) {
+      // Authoritative intent to server
       this.network.send("move_intent", { dx, dy, dt: 0.05 });
+
+      // Client-Side Prediction: instant 0ms response on local avatar
+      const state = this.getGameState();
+      const role = this.getLocalRole();
+      if (state && role && state.players && state.players[role] && !state.players[role].activeTask) {
+        const p = state.players[role];
+        const len = Math.hypot(dx, dy) || 1;
+        const speed = p.isSick ? 55 : 125;
+        const step = 0.05 * speed;
+        const ndx = (dx / len) * step;
+        const ndy = (dy / len) * step;
+
+        const targetX = p.x + ndx;
+        const targetY = p.y + ndy;
+
+        if (targetX >= 35 && targetX <= 1365 && targetY >= 35 && targetY <= 865) {
+          p.x = Math.round(targetX * 10) / 10;
+          p.y = Math.round(targetY * 10) / 10;
+        }
+
+        if (Math.abs(dx) > Math.abs(dy)) {
+          p.direction = dx > 0 ? "right" : "left";
+        } else if (Math.abs(dy) > 0) {
+          p.direction = dy > 0 ? "down" : "up";
+        }
+        p.anim = "walk";
+      }
+    }
+  }
+
+  bindTouchControls() {
+    const bindBtn = (id, dx, dy) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const start = (e) => {
+        e.preventDefault();
+        this.touchDirection.dx = dx;
+        this.touchDirection.dy = dy;
+        el.classList.add("active");
+      };
+      const end = (e) => {
+        e.preventDefault();
+        if (this.touchDirection.dx === dx) this.touchDirection.dx = 0;
+        if (this.touchDirection.dy === dy) this.touchDirection.dy = 0;
+        el.classList.remove("active");
+      };
+      el.addEventListener("touchstart", start, { passive: false });
+      el.addEventListener("touchend", end, { passive: false });
+      el.addEventListener("touchcancel", end, { passive: false });
+      el.addEventListener("mousedown", start);
+      el.addEventListener("mouseup", end);
+      el.addEventListener("mouseleave", end);
+    };
+
+    bindBtn("dpadUp", 0, -1);
+    bindBtn("dpadDown", 0, 1);
+    bindBtn("dpadLeft", -1, 0);
+    bindBtn("dpadRight", 1, 0);
+
+    const actionBtn = document.getElementById("dpadAction");
+    if (actionBtn) {
+      actionBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        this.triggerInteraction();
+      });
+      actionBtn.addEventListener("touchstart", (e) => {
+        e.preventDefault();
+        this.triggerInteraction();
+      }, { passive: false });
     }
   }
 

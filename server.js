@@ -485,27 +485,96 @@ const tickTimer = setInterval(() => {
     }
     state.lastTick = now;
 
-    // Tiger autonomous wandering AI
+    // Mamacan AI, Hunger, Rage & Pounce Mechanics
     if (state.tiger) {
-      if (!state.tiger.lastMoveTick || now - state.tiger.lastMoveTick > 4500) {
-        state.tiger.lastMoveTick = now;
-        if (state.tiger.isOutside) {
-          // Mamacan explores the whole estate, roaming into living room, kitchen, or garden
-          const houseSpots = [
-            { x: 550, y: 440 }, // Ruang keluarga di atas karpet
-            { x: 680, y: 440 }, // Meja board game
-            { x: 260, y: 460 }, // Dekat meja makan dapur
-            { x: 180, y: 680 }, // Dekat kolam koi di taman
-            { x: 350, y: 680 }, // Dekat pot bunga & BBQ
-            { x: 500, y: 760 }, // Jalan setapak taman
-            { x: 980, y: 720 }, // Kembali ke dekat kandang
-          ];
-          const spot = houseSpots[Math.floor(Math.random() * houseSpots.length)];
-          state.tiger.targetX = spot.x + (Math.random() * 40 - 20);
-          state.tiger.targetY = spot.y + (Math.random() * 40 - 20);
-        } else {
-          state.tiger.targetX = 820 + Math.random() * 460;
-          state.tiger.targetY = 660 + Math.random() * 140;
+      // Hunger decay every 2 seconds when players online
+      if (karipOnline || gabinOnline) {
+        if (!state.tiger.lastHungerDecay || now - state.tiger.lastHungerDecay > 2000) {
+          state.tiger.lastHungerDecay = now;
+          state.tiger.hunger = Math.max(0, (state.tiger.hunger === undefined ? 100 : state.tiger.hunger) - 1);
+
+          const prevMood = state.tiger.mood;
+          if (state.tiger.hunger <= 0) {
+            state.tiger.mood = "enraged";
+          } else if (state.tiger.hunger <= 40) {
+            state.tiger.mood = "hungry";
+          } else {
+            state.tiger.mood = "happy";
+          }
+
+          if (state.tiger.mood !== prevMood) {
+            broadcastToRoom(roomId, createEnvelope("tiger_warning", {
+              mood: state.tiger.mood,
+              hunger: state.tiger.hunger
+            }, null, roomId));
+          }
+        }
+      }
+
+      // If enraged, chase nearest online player!
+      if (state.tiger.mood === "enraged") {
+        let nearest = null;
+        let minDist = 9999;
+        for (const r of ["karip", "gabin"]) {
+          const p = state.players[r];
+          if (p && p.online) {
+            const d = Math.hypot(p.x - state.tiger.x, p.y - state.tiger.y);
+            if (d < minDist) {
+              minDist = d;
+              nearest = p;
+            }
+          }
+        }
+
+        if (nearest) {
+          state.tiger.targetX = nearest.x;
+          state.tiger.targetY = nearest.y;
+
+          // Pounce and eat avatar if caught!
+          if (minDist <= 32) {
+            nearest.x = 200; // Respawn in bedroom
+            nearest.y = 240;
+            state.stats.energy = Math.max(15, state.stats.energy - 35);
+            state.tiger.hunger = 85; // Satisfied after eating
+            state.tiger.mood = "happy";
+
+            const victimName = nearest.role === "karip" ? "Karip" : "Gabin";
+            const eatenMsg = {
+              id: `msg_${now}`,
+              role: "system",
+              text: `⚠️ Mamacan mengamuk kelaparan dan menerkam ${victimName}! ${victimName} terbangun kembali di kasur kamar tidur.`,
+              time: now
+            };
+            state.chat.push(eatenMsg);
+            broadcastToRoom(roomId, createEnvelope("chat_message", { message: eatenMsg }, null, roomId));
+            broadcastToRoom(roomId, createEnvelope("player_respawn", {
+              role: nearest.role,
+              x: nearest.x,
+              y: nearest.y
+            }, null, roomId));
+          }
+        }
+      } else {
+        // Normal wandering
+        if (!state.tiger.lastMoveTick || now - state.tiger.lastMoveTick > 4500) {
+          state.tiger.lastMoveTick = now;
+          if (state.tiger.isOutside) {
+            const houseSpots = [
+              { x: 550, y: 440 }, // Ruang keluarga di atas karpet
+              { x: 680, y: 440 }, // Meja board game
+              { x: 260, y: 460 }, // Dekat meja makan dapur
+              { x: 180, y: 680 }, // Dekat kolam koi di taman
+              { x: 350, y: 680 }, // Dekat pot bunga & BBQ
+              { x: 500, y: 760 }, // Jalan setapak taman
+              { x: 980, y: 720 }, // Kembali ke dekat kandang
+            ];
+            const spot = houseSpots[Math.floor(Math.random() * houseSpots.length)];
+            state.tiger.targetX = spot.x + (Math.random() * 40 - 20);
+            state.tiger.targetY = spot.y + (Math.random() * 40 - 20);
+          } else {
+            state.tiger.targetX = 820 + Math.random() * 460;
+            state.tiger.targetY = 660 + Math.random() * 140;
+          }
         }
       }
 
@@ -513,7 +582,8 @@ const tickTimer = setInterval(() => {
       const tdy = state.tiger.targetY - state.tiger.y;
       const tdist = Math.hypot(tdx, tdy);
       if (tdist > 5) {
-        const tspeed = 35 * (TICK_INTERVAL_MS / 1000);
+        const speedBase = state.tiger.mood === "enraged" ? 60 : 35;
+        const tspeed = speedBase * (TICK_INTERVAL_MS / 1000);
         state.tiger.x += (tdx / tdist) * tspeed;
         state.tiger.y += (tdy / tdist) * tspeed;
         state.tiger.direction = tdx > 0 ? "right" : "left";
@@ -524,7 +594,9 @@ const tickTimer = setInterval(() => {
           y: Math.round(state.tiger.y * 10) / 10,
           direction: state.tiger.direction,
           anim: state.tiger.anim,
-          isOutside: state.tiger.isOutside
+          isOutside: state.tiger.isOutside,
+          mood: state.tiger.mood,
+          hunger: state.tiger.hunger
         }, null, roomId));
       } else {
         if (state.tiger.anim !== "idle") {
@@ -534,7 +606,9 @@ const tickTimer = setInterval(() => {
             y: Math.round(state.tiger.y * 10) / 10,
             direction: state.tiger.direction,
             anim: "idle",
-            isOutside: state.tiger.isOutside
+            isOutside: state.tiger.isOutside,
+            mood: state.tiger.mood,
+            hunger: state.tiger.hunger
           }, null, roomId));
         }
       }

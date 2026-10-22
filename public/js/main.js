@@ -59,10 +59,18 @@
     if (!currentRoomState || !currentRoomState.players) return;
     const player = currentRoomState.players[data.role];
     if (player) {
-      player.x = data.x;
-      player.y = data.y;
-      player.direction = data.direction;
-      player.anim = data.anim;
+      if (data.role !== localRole) {
+        player.x = data.x;
+        player.y = data.y;
+        player.direction = data.direction;
+        player.anim = data.anim;
+      } else {
+        const drift = Math.hypot(player.x - data.x, player.y - data.y);
+        if (drift > 35) {
+          player.x = data.x;
+          player.y = data.y;
+        }
+      }
     }
   });
 

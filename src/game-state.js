@@ -612,6 +612,8 @@ function createInitialRoomState(roomId) {
       direction: "left",
       anim: "idle",
       isOutside: false,
+      hunger: 100,
+      mood: "happy",
       lastMoveTick: Date.now()
     },
     objects: JSON.parse(JSON.stringify(OBJECTS)),
