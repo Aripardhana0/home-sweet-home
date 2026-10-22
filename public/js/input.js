@@ -1,5 +1,50 @@
 "use strict";
 
+const CLIENT_WALLS = [
+  { x: 20, y: 20, w: 1360, h: 15 },
+  { x: 20, y: 865, w: 1360, h: 15 },
+  { x: 20, y: 20, w: 15, h: 860 },
+  { x: 1365, y: 20, w: 15, h: 860 },
+  { x: 350, y: 35, w: 15, h: 180 },
+  { x: 590, y: 35, w: 15, h: 180 },
+  { x: 35, y: 310, w: 130, h: 15 },
+  { x: 260, y: 310, w: 170, h: 15 },
+  { x: 510, y: 310, w: 170, h: 15 },
+  { x: 780, y: 310, w: 115, h: 15 },
+  { x: 880, y: 35, w: 15, h: 120 },
+  { x: 880, y: 260, w: 15, h: 100 },
+  { x: 880, y: 500, w: 15, h: 100 },
+  { x: 430, y: 325, w: 15, h: 65 },
+  { x: 430, y: 510, w: 15, h: 85 },
+  { x: 35, y: 600, w: 420, h: 15 },
+  { x: 580, y: 600, w: 300, h: 15 },
+  { x: 880, y: 600, w: 180, h: 15 },
+  { x: 1200, y: 600, w: 165, h: 15 },
+  { x: 750, y: 625, w: 580, h: 12 },
+  { x: 1320, y: 625, w: 12, h: 220 },
+  { x: 750, y: 835, w: 580, h: 12 },
+  { x: 750, y: 625, w: 12, h: 70 },
+  { x: 750, y: 765, w: 12, h: 80 }
+];
+
+function checkClientCollision(x, y, radius = 14, objects = null) {
+  if (x - radius < 35 || x + radius > 1365 || y - radius < 35 || y + radius > 865) return true;
+  for (let i = 0; i < CLIENT_WALLS.length; i++) {
+    const w = CLIENT_WALLS[i];
+    if (x + radius > w.x && x - radius < w.x + w.w && y + radius > w.y && y - radius < w.y + w.h) {
+      return true;
+    }
+  }
+  if (objects) {
+    for (const obj of Object.values(objects)) {
+      if (!obj.solid) continue;
+      if (x + radius > obj.x && x - radius < obj.x + obj.w && y + radius > obj.y && y - radius < obj.y + obj.h) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
 class InputManager {
   constructor(network, getGameState, getLocalRole) {
     this.network = network;
@@ -63,14 +108,22 @@ class InputManager {
         const ndx = (dx / len) * step;
         const ndy = (dy / len) * step;
 
-        const targetX = p.x + ndx;
-        const targetY = p.y + ndy;
+        const objs = state.objects || null;
+        let moved = false;
 
-        if (targetX >= 35 && targetX <= 1365 && targetY >= 35 && targetY <= 865) {
+        if (!checkClientCollision(targetX, targetY, 14, objs)) {
           p.x = Math.round(targetX * 10) / 10;
           p.y = Math.round(targetY * 10) / 10;
+          moved = true;
+        } else {
+          if (!checkClientCollision(targetX, p.y, 14, objs)) {
+            p.x = Math.round(targetX * 10) / 10;
+            moved = true;
+          } else if (!checkClientCollision(p.x, targetY, 14, objs)) {
+            p.y = Math.round(targetY * 10) / 10;
+            moved = true;
+          }
         }
-
         if (Math.abs(dx) > Math.abs(dy)) {
           p.direction = dx > 0 ? "right" : "left";
         } else if (Math.abs(dy) > 0) {
