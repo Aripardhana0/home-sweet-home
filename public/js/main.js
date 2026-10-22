@@ -60,15 +60,16 @@
     const player = currentRoomState.players[data.role];
     if (player) {
       if (data.role !== localRole) {
-        player.x = data.x;
-        player.y = data.y;
+        player.targetX = data.x;
+        player.targetY = data.y;
         player.direction = data.direction;
         player.anim = data.anim;
       } else {
-        const drift = Math.hypot(player.x - data.x, player.y - data.y);
-        if (drift > 35) {
+        if (!input.isMovingLocally) {
           player.x = data.x;
           player.y = data.y;
+          player.direction = data.direction;
+          player.anim = data.anim;
         }
       }
     }
@@ -191,8 +192,27 @@
   // Connect network
   network.connect();
 
-  // Main Render Loop
+  // Main 60 FPS Render & Smooth Motion Loop
+  let lastFrameTime = performance.now();
+
   function gameLoop() {
+    const now = performance.now();
+    const dt = Math.min((now - lastFrameTime) / 1000, 0.08);
+    lastFrameTime = now;
+
+    // Local player smooth 60 FPS movement
+    input.update(dt);
+
+    // Smooth partner position interpolation
+    if (currentRoomState && currentRoomState.players) {
+      for (const [r, p] of Object.entries(currentRoomState.players)) {
+        if (r !== localRole && typeof p.targetX === "number") {
+          p.x += (p.targetX - p.x) * 0.35;
+          p.y += (p.targetY - p.y) * 0.35;
+        }
+      }
+    }
+
     renderer.render(currentRoomState, localRole);
     requestAnimationFrame(gameLoop);
   }
