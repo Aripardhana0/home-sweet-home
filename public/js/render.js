@@ -137,7 +137,7 @@ class GameRenderer {
       }
     }
 
-    // Autonomous Tiger (Si Belang)
+    // Autonomous Mamacan
     if (roomState && roomState.tiger) {
       renderList.push({
         type: "tiger",
@@ -330,7 +330,7 @@ class GameRenderer {
     ctx.fillText("[DAPUR & RUANG MAKAN]", 45, 345);
     ctx.fillText("[RUANG KELUARGA & GAME LOUNGE]", 455, 345);
     ctx.fillText("[TAMAN ASRI & KOLAM KOI]", 45, 630);
-    ctx.fillText("[KANDANG MACAN (SI BELANG)]", 750, 640);
+    ctx.fillText("[KANDANG MAMACAN]", 750, 640);
   }
 
   drawWalls(ctx, roomState) {
@@ -353,43 +353,44 @@ class GameRenderer {
     ctx.fillRect(510, 310, 170, 15);
     ctx.fillRect(780, 310, 115, 15);
 
-    ctx.fillRect(880, 35, 15, 320);
-    ctx.fillRect(880, 480, 15, 120);
+    ctx.fillRect(880, 35, 15, 120);
+    ctx.fillRect(880, 260, 15, 100);
+    ctx.fillRect(880, 500, 15, 100);
 
     ctx.fillRect(430, 325, 15, 65);
     ctx.fillRect(430, 510, 15, 85);
 
-    ctx.fillRect(35, 595, 420, 15);
-    ctx.fillRect(580, 595, 300, 15);
-    ctx.fillRect(880, 595, 180, 15);
-    ctx.fillRect(1200, 595, 165, 15);
+    ctx.fillRect(35, 600, 420, 15);
+    ctx.fillRect(580, 600, 300, 15);
+    ctx.fillRect(880, 600, 180, 15);
+    ctx.fillRect(1200, 600, 165, 15);
 
-    // Tiger enclosure fence
+    // Tiger enclosure perimeter fence (x: 750..1320, y: 625..845)
     ctx.strokeStyle = "#535c68";
     ctx.lineWidth = 3;
-    ctx.strokeRect(720, 620, 610, 225);
+    ctx.strokeRect(750, 625, 570, 220);
 
     // Fence vertical bars
     ctx.strokeStyle = "rgba(149, 175, 192, 0.75)";
     ctx.lineWidth = 1.5;
-    for (let fx = 720; fx < 1320; fx += 18) {
-      ctx.beginPath(); ctx.moveTo(fx, 620); ctx.lineTo(fx, 845); ctx.stroke();
+    for (let fx = 750; fx < 1320; fx += 18) {
+      ctx.beginPath(); ctx.moveTo(fx, 625); ctx.lineTo(fx, 845); ctx.stroke();
     }
 
     // Interactive Tiger Gate
     const gateOpen = roomState && roomState.objects && roomState.objects.tiger_gate && roomState.objects.tiger_gate.state === "open";
     if (!gateOpen) {
       ctx.fillStyle = "#c0392b";
-      ctx.fillRect(718, 690, 16, 70);
+      ctx.fillRect(748, 695, 16, 70);
       ctx.fillStyle = "#ffffff";
       ctx.font = "bold 9px monospace";
-      ctx.fillText("LOCKED", 726, 725);
+      ctx.fillText("LOCKED", 756, 730);
     } else {
       ctx.fillStyle = "#27ae60";
-      ctx.fillRect(702, 690, 18, 14);
+      ctx.fillRect(732, 695, 18, 14);
       ctx.fillStyle = "#2ecc71";
       ctx.font = "bold 9px monospace";
-      ctx.fillText("OPEN", 726, 725);
+      ctx.fillText("OPEN", 756, 730);
     }
 
     // 3D wall top highlights
@@ -674,7 +675,7 @@ class GameRenderer {
     ctx.restore();
   }
 
-  // AUTONOMOUS TIGER (Si Belang) RENDERING WITH ACTIVE MOVEMENT
+  // AUTONOMOUS MAMACAN RENDERING WITH ACTIVE MOVEMENT
   drawTiger(ctx, tiger) {
     const { x, y, direction, anim } = tiger;
     ctx.save();
@@ -764,7 +765,7 @@ class GameRenderer {
     ctx.fillStyle = "#e5a93c";
     ctx.font = "bold 9px monospace";
     ctx.textAlign = "center";
-    ctx.fillText("SI BELANG", 0, -32);
+    ctx.fillText("MAMACAN", 0, -32);
 
     ctx.restore();
   }
@@ -1103,7 +1104,7 @@ class GameRenderer {
       const dist = Math.hypot(player.x - tiger.x, player.y - tiger.y);
       if (dist <= 85 && dist < minDist) {
         minDist = dist;
-        candidate = { name: "Macan (Si Belang)", x: tiger.x, y: tiger.y };
+        candidate = { name: "Mamacan", x: tiger.x, y: tiger.y };
       }
     }
 

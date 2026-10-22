@@ -40,12 +40,12 @@ const WALLS = [
   { x: 880, y: 600, w: 180, h: 15 }, // Wall between pool deck and garden
   { x: 1200, y: 600, w: 165, h: 15 },// Doorway from pool to tiger walkway: x 1060-1200
 
-  // Tiger enclosure perimeter fence (x: 800..1330, y: 625..845) - PROPORTIONAL SIZE!
-  { x: 800, y: 625, w: 530, h: 12 },  // Top fence
+  // Tiger enclosure perimeter fence (x: 750..1330, y: 625..845) - PROPORTIONAL & ALIGNED!
+  { x: 750, y: 625, w: 580, h: 12 },  // Top fence
   { x: 1320, y: 625, w: 12, h: 220 }, // Right fence
-  { x: 800, y: 835, w: 530, h: 12 },  // Bottom fence
-  { x: 800, y: 625, w: 12, h: 70 },   // Left fence top
-  { x: 800, y: 765, w: 12, h: 80 }    // Left fence bottom (gate opening at y: 695-765 directly to garden!)
+  { x: 750, y: 835, w: 580, h: 12 },  // Bottom fence
+  { x: 750, y: 625, w: 12, h: 70 },   // Left fence top
+  { x: 750, y: 765, w: 12, h: 80 }    // Left fence bottom (gate opening at y: 695-765)
 ];
 
 const OBJECTS = {
@@ -483,17 +483,16 @@ const OBJECTS = {
     state: "clean"
   },
 
-  // 8. Kandang Macan Eksotis Proporsional (Bottom-Right, directly connected via gate)
   tiger_gate: {
     id: "tiger_gate",
     name: "Pintu Kandang Mamacan",
     area: "tiger",
-    x: 800,
+    x: 750,
     y: 695,
     w: 12,
     h: 70,
-    solid: true, // Becomes non-solid when opened!
-    interactX: 780,
+    solid: true, // Non-solid when opened!
+    interactX: 730,
     interactY: 730,
     radius: 75,
     state: "closed"

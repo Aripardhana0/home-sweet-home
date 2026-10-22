@@ -320,7 +320,7 @@ class UIManager {
         living: "Ruang Keluarga & Lounge",
         garden: "Teras & Kebun Bunga",
         pool: "Area Kolam Renang",
-        tiger: "Kandang Macan (Si Belang)",
+        tiger: "Kandang Mamacan",
         any: "Di Mana Saja (Dekat Pasangan)"
       };
 

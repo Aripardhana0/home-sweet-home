@@ -156,7 +156,7 @@ class InputManager {
       const dist = Math.hypot(player.x - state.tiger.x, player.y - state.tiger.y);
       if (dist <= 85) {
         window.dispatchEvent(new CustomEvent("gk:open-tasks-for-object", {
-          detail: { objectId: "tiger", objectName: "Macan (Si Belang)" }
+          detail: { objectId: "tiger", objectName: "Mamacan" }
         }));
         return;
       }
