@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rumah Kecil-Kecilan (Simulasi Rumah Tangga Santai)</title>
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <!-- Top Navigation & Status Bar -->
+  <header class="game-header">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <div class="brand-title">RUMAH KECIL-KECILAN</div>
+      <button id="btnOpenTaskBoard" class="btn-chip" style="background: var(--accent-gold); color: #12151c; font-weight: bold; min-height: 36px; padding: 6px 12px;">DAFTAR TUGAS</button>
+    </div>
+
+    <div class="hud-clock-group">
+      <span id="hudDay">Hari 1</span>
+      <span>|</span>
+      <span id="hudClock">08:00</span>
+    </div>
+
+    <div class="hud-stats-group">
+      <div class="stat-item" title="Energi">
+        <span class="stat-label">Energi</span>
+        <div class="stat-bar-outer"><div id="barEnergy" class="stat-bar-inner bar-energy" style="width: 85%;"></div></div>
+      </div>
+      <div class="stat-item" title="Kenyang">
+        <span class="stat-label">Kenyang</span>
+        <div class="stat-bar-outer"><div id="barHunger" class="stat-bar-inner bar-hunger" style="width: 80%;"></div></div>
+      </div>
+      <div class="stat-item" title="Suasana Hati">
+        <span class="stat-label">Mood</span>
+        <div class="stat-bar-outer"><div id="barMood" class="stat-bar-inner bar-mood" style="width: 85%;"></div></div>
+      </div>
+      <div class="stat-item" title="Kenyamanan Rumah">
+        <span class="stat-label">Kenyamanan</span>
+        <div class="stat-bar-outer"><div id="barComfort" class="stat-bar-inner bar-comfort" style="width: 80%;"></div></div>
+      </div>
+      <div class="stat-item" title="Keharmonisan">
+        <span class="stat-label">Harmoni</span>
+        <div class="stat-bar-outer"><div id="barHarmony" class="stat-bar-inner bar-harmony" style="width: 85%;"></div></div>
+      </div>
+    </div>
+  </header>
+  <!-- Alert Banner Saat Karakter Sakit / Lemas -->
+  <div id="sickAlertBanner" style="display: none; background: #c0392b; color: #ffffff; padding: 8px 16px; font-size: 0.85rem; font-weight: bold; text-align: center; border-bottom: 2px solid #e74c3c; z-index: 20;">
+    ⚠️ Karakter sedang lemas/sakit! Kurang energi atau lapar. Segera makan di dapur atau tidur di kasur.
+  </div>
+
+  <!-- Fullscreen Game Canvas Area -->
+  <main class="game-container">
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Floating Top Controls -->
+    <div class="canvas-controls">
+      <button id="btnResetView" class="btn-icon" title="Pusatkan Kamera ke Karakter">Pusatkan Kamera</button>
+    </div>
+
+    <!-- Co-op Invite Notification Banner -->
+    <div id="coopBanner" class="coop-banner" style="display: none;">
+      <span id="coopText">Pasangan mengajak aktivitas bersama</span>
+      <div class="coop-actions">
+        <button id="btnCoopAccept" class="btn-accept">Terima</button>
+        <button id="btnCoopDecline" class="btn-decline">Tolak</button>
+      </div>
+    </div>
+
+    <!-- Floating Translucent Chat & Phrases Drawer (Side Panel) -->
+    <aside id="chatDrawer" class="chat-floating-drawer">
+      <div id="chatHistoryBox" class="chat-history-log">
+        <div style="font-size: 0.72rem; color: var(--text-muted); text-align: center; margin-bottom: 4px;">Obrolan Pasangan</div>
+      </div>
+      <div class="emotes-group">
+        <button class="btn-emote" data-emote="😊" title="Senyum">😊</button>
+        <button class="btn-emote" data-emote="❤️" title="Hati">❤️</button>
+        <button class="btn-emote" data-emote="👋" title="Lambaian">👋</button>
+        <button class="btn-emote" data-emote="😄" title="Tertawa">😄</button>
+        <button class="btn-emote" data-emote="💤" title="Mengantuk">💤</button>
+        <button class="btn-emote" data-emote="👏" title="Tepuk tangan">👏</button>
+      </div>
+
+      <div class="quick-phrases-bar">
+        <button class="btn-chip" data-phrase="Selamat pagi">Selamat pagi</button>
+        <button class="btn-chip" data-phrase="Sudah makan?">Sudah makan?</button>
+        <button class="btn-chip" data-phrase="Mau dibantu?">Mau dibantu?</button>
+        <button class="btn-chip" data-phrase="Terima kasih">Terima kasih</button>
+        <button class="btn-chip" data-phrase="Ayo istirahat">Ayo istirahat</button>
+        <button class="btn-chip" data-phrase="Aku sayang kamu">Aku sayang kamu</button>
+      </div>
+
+      <div class="chat-input-box">
+        <input type="text" id="chatInput" placeholder="Kirim pesan..." maxlength="160">
+        <button id="btnSendChat" class="btn-send">Kirim</button>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Modal 1: Masuk Rumah (Kode Room) -->
+  <div id="joinModal" class="modal-backdrop">
+    <div class="modal-dialog">
+      <h2 class="modal-title">Masuk ke Rumah</h2>
+      <p class="modal-desc">Masukkan kode room yang diberikan oleh Admin untuk bergabung bersama pasangan Anda.</p>
+      <form id="formJoin">
+        <div class="form-group">
+          <label for="inputRoomCode">KODE ROOM</label>
+          <input type="text" id="inputRoomCode" class="form-control" placeholder="Contoh: GK-7K2M9Q" required autocomplete="off">
+        </div>
+        <button type="submit" class="btn-primary">Lanjutkan</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 2: Pilih Karakter (Karip / Gabin) -->
+  <div id="charModal" class="modal-backdrop" style="display: none;">
+    <div class="modal-dialog" style="max-width: 560px;">
+      <h2 class="modal-title">Pilih Karakter</h2>
+      <p class="modal-desc">Pilih slot karakter yang akan Anda mainkan di rumah ini.</p>
+
+      <div class="character-cards">
+        <div id="cardKarip" class="character-card">
+          <div class="card-avatar-box">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="7" r="4" fill="#f5cd79"/>
+              <path d="M8 5C8 3.5 9.5 2 12 2C14.5 2 16 3.5 16 5V7H8V5Z" fill="#2c3e50"/>
+              <rect x="6" y="11" width="12" height="9" rx="2" fill="#e67e22"/>
+              <rect x="7" y="20" width="4" height="4" fill="#2980b9"/>
+              <rect x="13" y="20" width="4" height="4" fill="#2980b9"/>
+            </svg>
+          </div>
+          <div class="card-name">KARIP</div>
+          <div class="card-role">Suami</div>
+          <span id="statusKarip" class="card-status">Memeriksa...</span>
+        </div>
+
+        <div id="cardGabin" class="character-card">
+          <div class="card-avatar-box">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+              <!-- Gabin with Hijab -->
+              <path d="M7 4C7 2 9 1 12 1C15 1 17 2 17 4V13C17 14 16 15 14 15H10C8 15 7 14 7 13V4Z" fill="#55efc4"/>
+              <circle cx="12" cy="7" r="3" fill="#ffeaa7"/>
+              <rect x="6" y="14" width="12" height="8" rx="2" fill="#e84393"/>
+              <rect x="8" y="22" width="8" height="2" fill="#34495e"/>
+            </svg>
+          </div>
+          <div class="card-name">GABIN</div>
+          <div class="card-role">Istri Berhijab</div>
+          <span id="statusGabin" class="card-status">Memeriksa...</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 3: Pilihan Aktivitas Objek -->
+  <div id="taskModal" class="modal-backdrop" style="display: none;">
+    <div class="modal-dialog">
+      <h2 id="taskModalTitle" class="modal-title">Aktivitas Objek</h2>
+      <div id="taskModalList" style="margin: 16px 0; max-height: 260px; overflow-y: auto;"></div>
+      <button id="btnCloseTask" class="btn-primary" style="background: var(--bg-hover); color: var(--text-primary);">Tutup</button>
+    </div>
+  </div>
+
+  <!-- Modal 4: Papan Seluruh Tugas Rumah (Task Board) -->
+  <div id="taskBoardModal" class="modal-backdrop" style="display: none;">
+    <div class="modal-dialog" style="max-width: 640px; max-height: 85vh; display: flex; flex-direction: column;">
+      <h2 class="modal-title">Papan Tugas Rumah</h2>
+      <p class="modal-desc" style="margin-bottom: 12px;">
+        Tugas bertanda <strong style="color: var(--accent-green)">[BISA SENDIRI]</strong> dapat langsung Anda kerjakan tanpa menunggu pasangan. Tugas bertanda <strong style="color: var(--accent-gold)">[BERSAMA]</strong> membutuhkan ajakan dan persetujuan kedua pemain.
+      </p>
+      <div id="taskBoardList" style="flex: 1; overflow-y: auto; margin: 10px 0; padding-right: 6px; display: flex; flex-direction: column; gap: 8px;"></div>
+      <button id="btnCloseTaskBoard" class="btn-primary" style="background: var(--bg-hover); color: var(--text-primary); margin-top: 10px;">Tutup Papan Tugas</button>
+    </div>
+  </div>
+
+  <script src="/js/render.js"></script>
+  <script src="/js/network.js"></script>
+  <script src="/js/input.js"></script>
+  <script src="/js/ui.js"></script>
+  <script src="/js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rumah Kecil-Kecilan Admin: Pengelolaan Room Pasangan</title>
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body style="overflow-y: auto;">
+  <header class="game-header">
+    <div class="brand-title">RUMAH KECIL-KECILAN: ADMIN</div>
+    <div>
+      <a href="/" style="color: var(--accent-gold); text-decoration: none; font-size: 0.9rem; font-weight: bold;">Ke Halaman Game</a>
+    </div>
+  </header>
+
+  <div class="admin-container">
+    <!-- Auth Card -->
+    <div id="loginCard" class="admin-card">
+      <h2 class="modal-title">Autentikasi Admin</h2>
+      <p class="modal-desc">Masukkan password administrator untuk mengelola room pasangan.</p>
+      <form id="formAdminLogin">
+        <div class="form-group">
+          <label for="adminPass">PASSWORD ADMIN</label>
+          <input type="password" id="adminPass" class="form-control" placeholder="Masukkan password..." required>
+        </div>
+        <button type="submit" class="btn-primary">Masuk Panel</button>
+      </form>
+    </div>
+
+    <!-- Main Admin Dashboard -->
+    <div id="dashboardCard" style="display: none;">
+      <!-- Create Room Form -->
+      <div class="admin-card">
+        <h2 class="modal-title">Buat Room Pasangan Baru</h2>
+        <p class="modal-desc">Server dapat menghasilkan kode acak atau Anda dapat menentukan kode kustom sendiri.</p>
+        <form id="formCreateRoom" style="display: flex; flex-direction: column; gap: 12px; max-width: 520px;">
+          <div>
+            <label for="roomNameInput" style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 4px;">NAMA RUMAH</label>
+            <input type="text" id="roomNameInput" class="form-control" placeholder="Contoh: Rumah Karip & Gabin" required>
+          </div>
+          <div>
+            <label for="roomCodeInput" style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 4px;">KODE ROOM KUSTOM (Opsional, kosongkan jika ingin acak otomatis)</label>
+            <input type="text" id="roomCodeInput" class="form-control" placeholder="Contoh: KITA-BERDUA atau RUMAH-CINTA">
+          </div>
+          <button type="submit" class="btn-primary" style="width: 100%;">Buat Room</button>
+        </form>
+
+        <div id="newCodeAlert" style="display: none; margin-top: 16px; padding: 12px; background: #2f3b50; border: 1px solid var(--accent-gold); border-radius: 6px;">
+          <p style="color: var(--accent-gold); font-size: 0.85rem; margin-bottom: 4px;">KODE ROOM BERHASIL DIBUAT (SIMPAN SEKARANG):</p>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <code id="newCodeText" style="font-size: 1.4rem; font-weight: bold; color: #fff;"></code>
+            <button id="btnCopyCode" class="btn-sm">Salin Kode</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Room List Table -->
+      <div class="admin-card">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <h2 class="modal-title">Daftar Room Aktif</h2>
+          <button id="btnRefreshRooms" class="btn-sm">Muat Ulang</button>
+        </div>
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>NAMA ROOM</th>
+              <th>STATUS</th>
+              <th>SLOT KARIP</th>
+              <th>SLOT GABIN</th>
+              <th>TANGGAL</th>
+              <th>AKSI</th>
+            </tr>
+          </thead>
+          <tbody id="roomsTableBody">
+            <tr>
+              <td colspan="6" style="text-align: center; color: var(--text-muted);">Memuat data room...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let adminToken = localStorage.getItem("gk_admin_token");
+
+    const loginCard = document.getElementById("loginCard");
+    const dashboardCard = document.getElementById("dashboardCard");
+    const formLogin = document.getElementById("formAdminLogin");
+    const formCreate = document.getElementById("formCreateRoom");
+    const tableBody = document.getElementById("roomsTableBody");
+    const newCodeAlert = document.getElementById("newCodeAlert");
+    const newCodeText = document.getElementById("newCodeText");
+    const btnCopyCode = document.getElementById("btnCopyCode");
+    const btnRefresh = document.getElementById("btnRefreshRooms");
+
+    if (adminToken) {
+      showDashboard();
+    }
+
+    formLogin.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const password = document.getElementById("adminPass").value;
+      try {
+        const res = await fetch("/api/admin/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ password })
+        });
+        const data = await res.json();
+        if (data.ok && data.token) {
+          adminToken = data.token;
+          localStorage.setItem("gk_admin_token", adminToken);
+          showDashboard();
+        } else {
+          alert(data.error || "Password salah");
+        }
+      } catch (err) {
+        alert("Gagal menghubungi server");
+      }
+    });
+
+    formCreate.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const name = document.getElementById("roomNameInput").value;
+      const code = document.getElementById("roomCodeInput").value.trim();
+      try {
+        const res = await fetch("/api/admin/create-room", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${adminToken}`
+          },
+          body: JSON.stringify({ name, code: code || undefined })
+        });
+        const data = await res.json();
+        if (data.ok) {
+          newCodeText.textContent = data.code;
+          newCodeAlert.style.display = "block";
+          document.getElementById("roomNameInput").value = "";
+          document.getElementById("roomCodeInput").value = "";
+          loadRooms();
+        } else {
+          alert(data.error || "Gagal membuat room");
+        }
+      } catch {
+        alert("Terjadi kesalahan jaringan");
+      }
+    });
+
+    btnCopyCode.addEventListener("click", () => {
+      navigator.clipboard.writeText(newCodeText.textContent);
+      btnCopyCode.textContent = "Tersalin!";
+      setTimeout(() => btnCopyCode.textContent = "Salin Kode", 2000);
+    });
+
+    btnRefresh.addEventListener("click", () => loadRooms());
+
+    function showDashboard() {
+      loginCard.style.display = "none";
+      dashboardCard.style.display = "block";
+      loadRooms();
+    }
+
+    async function loadRooms() {
+      try {
+        const res = await fetch("/api/admin/rooms", {
+          headers: { "Authorization": `Bearer ${adminToken}` }
+        });
+        if (res.status === 401) {
+          adminToken = null;
+          localStorage.removeItem("gk_admin_token");
+          loginCard.style.display = "block";
+          dashboardCard.style.display = "none";
+          return;
+        }
+        const data = await res.json();
+        if (data.ok) {
+          renderTable(data.rooms);
+        }
+      } catch {
+        tableBody.innerHTML = "<tr><td colspan='6' style='color: var(--accent-rose);'>Gagal memuat data</td></tr>";
+      }
+    }
+
+    function renderTable(rooms) {
+      if (!rooms || rooms.length === 0) {
+        tableBody.innerHTML = "<tr><td colspan='6' style='text-align: center; color: var(--text-muted);'>Belum ada room dibuat</td></tr>";
+        return;
+      }
+
+      tableBody.innerHTML = "";
+      for (const r of rooms) {
+        const tr = document.createElement("tr");
+
+        const karipBadge = r.slots.karip.claimed ? (r.slots.karip.online ? "<span style='color: var(--accent-green)'>Online</span>" : "<span style='color: var(--text-muted)'>Offline</span>") : "<span style='color: var(--accent-gold)'>Kosong</span>";
+        const gabinBadge = r.slots.gabin.claimed ? (r.slots.gabin.online ? "<span style='color: var(--accent-green)'>Online</span>" : "<span style='color: var(--text-muted)'>Offline</span>") : "<span style='color: var(--accent-gold)'>Kosong</span>";
+        const dateStr = new Date(r.createdAt).toLocaleDateString("id-ID");
+
+        tr.innerHTML = `
+          <td><strong>${r.name}</strong><br><small style="color: var(--text-muted)">${r.roomId}</small></td>
+          <td><span style="color: var(--accent-green)">${r.status}</span></td>
+          <td>${karipBadge}</td>
+          <td>${gabinBadge}</td>
+          <td>${dateStr}</td>
+          <td style="display: flex; gap: 6px; flex-wrap: wrap;">
+            <button class="btn-sm" onclick="resetRoom('${r.roomId}')">Reset</button>
+            <button class="btn-sm" onclick="releaseSlot('${r.roomId}', 'karip')">Lepas Karip</button>
+            <button class="btn-sm" onclick="releaseSlot('${r.roomId}', 'gabin')">Lepas Gabin</button>
+            <button class="btn-sm btn-danger" onclick="revokeRoom('${r.roomId}')">Cabut</button>
+          </td>
+        `;
+        tableBody.appendChild(tr);
+      }
+    }
+
+    async function revokeRoom(roomId) {
+      if (!confirm("Yakin ingin mencabut room ini? Semua progres akan dihapus.")) return;
+      await fetch("/api/admin/revoke-room", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${adminToken}` },
+        body: JSON.stringify({ roomId })
+      });
+      loadRooms();
+    }
+
+    async function resetRoom(roomId) {
+      if (!confirm("Reset progres room ini kembali ke awal?")) return;
+      await fetch("/api/admin/reset-room", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${adminToken}` },
+        body: JSON.stringify({ roomId })
+      });
+      loadRooms();
+    }
+
+    async function releaseSlot(roomId, role) {
+      await fetch("/api/admin/release-slot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${adminToken}` },
+        body: JSON.stringify({ roomId, role })
+      });
+      loadRooms();
+    }
+  </script>
+</body>
+</html>

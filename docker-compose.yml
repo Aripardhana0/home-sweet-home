@@ -1,0 +1,21 @@
+services:
+  gk-game:
+    build: .
+    container_name: gk-game
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8080}:8080"
+    volumes:
+      - ./data/rooms:/app/data/rooms
+    environment:
+      - PORT=8080
+      - HOST=0.0.0.0
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-gabin-karip-admin-2026}
+      - ROOM_SECRET_KEY=${ROOM_SECRET_KEY:-gk-secret-key-prod-2026}
+      - DATA_DIR=/app/data/rooms
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8080/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
